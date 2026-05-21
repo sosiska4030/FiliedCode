@@ -1,6 +1,7 @@
 # Папки сборки
 cmake-build-debug/
 cmake-build-debug-llvm/
+fc_tests/
 
 # Скомпилированные файлы
 *.exe
