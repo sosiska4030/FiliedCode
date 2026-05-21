@@ -6,20 +6,23 @@
 #include <iostream>
 #include <map>
 
-
 std::unique_ptr<ASTNode> Parser::parseTopLevel() {
+
     auto program = std::make_unique<BlockAST>();
     while (!isAtEnd()) {
-        if (check(Tokens::KEYWORD) && curTok().value == "func") {
-            program->push_into_statements(parseFunction());
-        }
 
+
+        if (check(Tokens::KEYWORD) && curTok().value == "func") {
+
+            program->push_into_statements(parseFunction());
+            continue;
+        }
         if (check(Tokens::KEYWORD) && curTok().value == "use") {
             while (!isAtEnd() && curTok().value != ";") consume();
             consume();
             continue;
         }
-
+        consume();
     }
     return program;
 }

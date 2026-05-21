@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
 
     if (argc >= 3 && std::string(argv[1]) == "build")
     {
+
         std::ifstream file(argv[2]);
 
         if (!file.is_open()) {
@@ -26,7 +27,10 @@ int main(int argc, char** argv) {
         }
 
         file.close();
-
+        size_t start = content.find_first_not_of(" \t\n\r\xEF\xBB\xBF");
+        if (start != std::string::npos) {
+            content = content.substr(start);
+        }
         Lexer lexer;
         lexer.scan(content);
 

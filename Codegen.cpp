@@ -39,7 +39,9 @@ void Codegen::declareExternalFunctions()
 }
 
 void Codegen::generateProgram(ASTNode* root) {
+
     BlockAST* block = dynamic_cast<BlockAST*>(root);
+
     if(!block) return;
 
     declareExternalFunctions();
