@@ -1,0 +1,12 @@
+
+namespace lll {
+
+func print_array(array ar: any) -> void
+{
+    for (variable int i = 0; i < ar.length(); i++)
+    {
+        printf(ar[i]);
+    }
+}
+
+}
