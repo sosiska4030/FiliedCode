@@ -1,9 +1,10 @@
 # FiliedCode compiler (fcc)
 
-## сборка
+## сборка/assembly
 - LLVM 22+
 - MinGW / GCC
 - CMake 3.20+
   
-## Использование
+## Использование/using
 fcc.exe build hello.fc
+
