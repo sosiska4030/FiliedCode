@@ -54,6 +54,9 @@ int main(int argc, char** argv) {
             std::cerr << "Linker error!\n";
         }
     }
+    else if (argc == 2 && std::string(argv[1]) == "--version") {
+        std::cout << "FiliedCode Compiler, version: 0.2\n";
+    }
  /*   else if (argc >= 4 && std::string(argv[1]) == "build -o")
     {
         std::ifstream file(argv[3]);

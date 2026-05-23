@@ -165,4 +165,15 @@ public:
 
 };
 
+class VariableRefAST : public ASTNode {
+    std::string Name;
+
+public:
+    VariableRefAST(const std::string& Name) : Name(Name) {
+
+    }
+    const std::string& getName() { return Name; }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
 #endif //FCC_PARSER_H

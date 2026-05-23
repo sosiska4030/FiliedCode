@@ -103,6 +103,10 @@ llvm::Value* Codegen::codegenString(stringExprAST *node) {
 
 llvm::Value* Codegen::codegenCall(CallExprAST *node) {
 
+    if (node->getCallee() == "printf" || node->getCallee() == "println") {
+        return codegenPrint(node, node->getCallee() == "println");
+    }
+
     llvm::Function* callee = Module->getFunction(node->getCallee());
 
     if (!callee) {
@@ -124,17 +128,41 @@ llvm::Value* Codegen::codegenCall(CallExprAST *node) {
 
 llvm::Value* Codegen::codegenVarDecl(VarDeclareAST *node) {
 
+
+    llvm::Type* varType;
+    if (node->getType() == "int") {
+        varType = llvm::Type::getInt32Ty(*Context);
+    }
+    else if (node->getType() == "string") {
+        varType = llvm::PointerType::get(*Context, 0);
+    }
+    else {
+        varType = llvm::Type::getInt32Ty(*Context);
+    }
+
     llvm::AllocaInst* alloca = Builder->CreateAlloca(
-        llvm::Type::getInt32Ty(*Context),
+        varType,
         nullptr,
         node->getName()
     );
 
     if (ASTNode* initVal = node->getInitValue()) {
+        llvm::Value* val = nullptr;
 
+        if (auto* num = dynamic_cast<numberExprAST*>(initVal)) {
+            val = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
+        }
+        else if (auto* str = dynamic_cast<stringExprAST*>(initVal)) {
+            val = codegenString(str);
+        }
+
+        if (val) {
+            Builder->CreateStore(val, alloca);
+        }
     }
 
     NamedValues[node->getName()] = alloca;
+    NamedTypes[node->getName()] = node->getType();
 
     return alloca;
 }
@@ -179,6 +207,67 @@ void Codegen::emitObjectFile(const std::string &filename) {
     llvm::outs() << "Object file written to: " << filename << "\n";
 
 }
+
+llvm::Value* Codegen::codegenVarRef(VariableRefAST *node) {
+    auto it = NamedValues.find(node->getName());
+    if (it == NamedValues.end()) {
+        std::cerr << "ERROR: Unknown variable: " << node->getName() << "\n";
+        return nullptr;
+    }
+
+    llvm::Type* loadType;
+    auto typeIt = NamedTypes.find(node->getName());
+
+    if (typeIt != NamedTypes.end() && typeIt->second == "string") {
+        loadType = llvm::PointerType::get(*Context, 0);
+    }
+    else {
+        loadType = llvm::Type::getInt32Ty(*Context);
+    }
+
+    return Builder->CreateLoad(
+        loadType,
+        it->second,
+        node->getName()
+    );
+}
+
+llvm::Value* Codegen::codegenPrint(CallExprAST *node, bool newLine) {
+    llvm::Function* printfFN = Module->getFunction("printf");
+
+    for (const auto& arg : node->getArgs()) {
+        llvm::Value* val = nullptr;
+        std::string fmt;
+
+        if (auto* strArg = dynamic_cast<stringExprAST*>(arg.get())) {
+            fmt = newLine ? "%s\n" : "%s";
+            val = codegenString(strArg);
+        }
+        else if (auto* numArg = dynamic_cast<numberExprAST*>(arg.get())) {
+            fmt = newLine ? "%d\n" : "%d";
+            val = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), numArg->getValue());
+        }
+        else if (auto* refArg = dynamic_cast<VariableRefAST*>(arg.get())) {
+            auto typeIt = NamedTypes.find(refArg->getName());
+            if (typeIt != NamedTypes.end() && typeIt->second == "string") {
+                fmt = newLine ? "%s\n" : "%s";
+            }
+            else {
+                fmt = newLine ? "%d\n" : "%d";
+            }
+            val = codegenVarRef(refArg);
+        }
+
+        if (val) {
+            llvm::Value* fmtStr = Builder->CreateGlobalString(fmt, "fmt");
+            Builder->CreateCall(printfFN, {fmtStr, val}, "printtpm");
+        }
+
+    }
+    return nullptr;
+}
+
+
 
 
 

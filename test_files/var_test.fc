@@ -1,0 +1,7 @@
+
+func main() -> void {
+    variable int x == 10;
+    println(x);
+    variable string hello == "Hello world";
+    println(hello);
+}

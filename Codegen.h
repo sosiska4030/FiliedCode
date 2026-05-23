@@ -23,6 +23,7 @@ public:
     std::unique_ptr<llvm::IRBuilder<>> Builder;
 
     std::map<std::string, llvm::Value*> NamedValues;
+    std::map<std::string, std::string> NamedTypes;
 
     Codegen();
 
@@ -33,6 +34,8 @@ public:
     llvm::Value* codegenCall(CallExprAST* node);
     llvm::Value* codegenString(stringExprAST* node);
     llvm::Value* codegenVarDecl(VarDeclareAST* node);
+    llvm::Value* codegenVarRef(VariableRefAST* node);
+    llvm::Value* codegenPrint(CallExprAST* node, bool newLine);
 
     void declareExternalFunctions();
     void emitObjectFile(const std::string& filename);

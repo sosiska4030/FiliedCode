@@ -3,7 +3,7 @@ use config standard;
 
 class Human; // Прототип класса Человек
 
-func main(int counter_args, char** value_args) -> int // Шаблон функции: func "имя функции"("имя параметра": "тип данных") -> "тип возвращаемого значения
+func main(int counter_args, char** value_args) -> int // Шаблон функции: func "имя функции"("Тип данных" "имя параметра") -> "тип возвращаемого значения
 {
     printf("Hello world"); // printf работает не как в C, а как print в Java
     variable int x == 10; // схема переменной: variable "тип данных" "имя переменной" == "значение"; кстати, знак присваивания в FiliedCode двойной

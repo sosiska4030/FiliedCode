@@ -95,10 +95,22 @@ std::unique_ptr<CallExprAST> Parser::parseCallExpr() {
     consume();
     std::vector<std::unique_ptr<ASTNode>> args;
 
-    if (check(Tokens::STRING)) {
-        std::string strContent = consume().value;
-        args.push_back(std::make_unique<stringExprAST>(strContent));
+    while (curTok().value != ")") {
+        if (check(Tokens::STRING)) {
+            args.push_back(std::make_unique<stringExprAST>(consume().value));
+        }
+        else if (check(Tokens::NUMBER)) {
+            args.push_back(std::make_unique<numberExprAST>(std::stoi(consume().value)));
+        }
+        else if (check(Tokens::IDENTIFIER)) {
+            args.push_back(std::make_unique<VariableRefAST>(consume().value));
+        }
+        else {
+            consume();
+        }
     }
+
+
 
     if (curTok().value == ")")
     {
@@ -125,16 +137,27 @@ std::unique_ptr<VarDeclareAST> Parser::parseVariableDeclaration() {
         std::string name = curTok().value;
         consume();
 
+        std::unique_ptr<ASTNode> initValue = nullptr;
         if (check(Tokens::OPERATOR) && curTok().value == "==")
         {
             consume();
-            auto value = consume();
+
+            if (check(Tokens::NUMBER)) {
+                // Я тут задумывал вместо std::unique_ptr<numberExprAST> value объявить, как auto value, но решил что так будет лучше
+                std::unique_ptr<numberExprAST> value = std::make_unique<numberExprAST>(std::stoi(consume().value));
+                initValue = std::move(value);
+            }
+            else if (check(Tokens::STRING)) {
+                // Здесь аналогично
+                std::unique_ptr<stringExprAST> value = std::make_unique<stringExprAST>(consume().value);
+                initValue = std::move(value);
+            }
 
         }
 
         if (curTok().value == ";") consume();
 
-        return std::make_unique<VarDeclareAST>(name, type, nullptr);
+        return std::make_unique<VarDeclareAST>(name, type, std::move(initValue));
 
     }
      return nullptr;
