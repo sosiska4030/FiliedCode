@@ -142,7 +142,7 @@ std::unique_ptr<VarDeclareAST> Parser::parseVariableDeclaration() {
         {
             consume();
 
-            if (check(Tokens::NUMBER)) {
+            /* if (check(Tokens::NUMBER)) {
                 // Я тут задумывал вместо std::unique_ptr<numberExprAST> value объявить, как auto value, но решил что так будет лучше
                 std::unique_ptr<numberExprAST> value = std::make_unique<numberExprAST>(std::stoi(consume().value));
                 initValue = std::move(value);
@@ -151,7 +151,8 @@ std::unique_ptr<VarDeclareAST> Parser::parseVariableDeclaration() {
                 // Здесь аналогично
                 std::unique_ptr<stringExprAST> value = std::make_unique<stringExprAST>(consume().value);
                 initValue = std::move(value);
-            }
+            } */
+            initValue = parseExpression();
 
         }
 
@@ -172,6 +173,35 @@ std::unique_ptr<numberExprAST> Parser::parseNumberExpr() {
         return std::make_unique<numberExprAST>(value);
     }
 	return nullptr;
+}
+
+std::unique_ptr<ASTNode> Parser::parsePrimary() {
+    if (check(Tokens::NUMBER)) {
+        return std::make_unique<numberExprAST>(std::stoi(consume().value));
+    }
+    if (check(Tokens::IDENTIFIER)) {
+        return std::make_unique<VariableRefAST>(consume().value);
+    }
+    if (check(Tokens::STRING)) {
+        return std::make_unique<stringExprAST>(consume().value);
+    }
+    std::cerr << "ERROR: Expected expression\n";
+    return nullptr;
+}
+
+
+std::unique_ptr<ASTNode> Parser::parseExpression() {
+    auto left = parsePrimary();
+
+    while (check(Tokens::OPERATOR) &&
+        (curTok().value == "+" || curTok().value == "-" || curTok().value == "*" || curTok().value == "/")) {
+
+        char op = consume().value[0];
+        auto right = parsePrimary();
+
+        left = std::make_unique<BinaryExprAST>(op, std::move(left), std::move(right));
+    }
+    return left;
 }
 
 

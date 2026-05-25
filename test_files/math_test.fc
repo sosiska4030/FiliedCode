@@ -1,0 +1,4 @@
+func main() -> void {
+    variable int x == 40 + 2;
+    printf(x);
+}

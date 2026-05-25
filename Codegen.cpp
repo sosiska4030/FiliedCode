@@ -93,6 +93,9 @@ llvm::Value* Codegen::codegenBlock(BlockAST *node) {
         else if (auto* var = dynamic_cast<VarDeclareAST*>(stmt.get())) {
             last = codegenVarDecl(var);
         }
+        else if (auto* bin = dynamic_cast<BinaryExprAST*>(stmt.get())) {
+            last = codegenBinaryExpr(bin);
+        }
     }
     return last;
 }
@@ -154,6 +157,9 @@ llvm::Value* Codegen::codegenVarDecl(VarDeclareAST *node) {
         }
         else if (auto* str = dynamic_cast<stringExprAST*>(initVal)) {
             val = codegenString(str);
+        }
+        else if (auto* bin = dynamic_cast<BinaryExprAST*>(initVal)) {
+            val = codegenBinaryExpr(bin);
         }
 
         if (val) {
@@ -257,6 +263,10 @@ llvm::Value* Codegen::codegenPrint(CallExprAST *node, bool newLine) {
             }
             val = codegenVarRef(refArg);
         }
+        else if (auto* binArg = dynamic_cast<BinaryExprAST*>(arg.get())) {
+            fmt = newLine ? "%d\n" : "%d";
+            val = codegenBinaryExpr(binArg);
+        }
 
         if (val) {
             llvm::Value* fmtStr = Builder->CreateGlobalString(fmt, "fmt");
@@ -267,6 +277,45 @@ llvm::Value* Codegen::codegenPrint(CallExprAST *node, bool newLine) {
     return nullptr;
 }
 
+llvm::Value* Codegen::codegenBinaryExpr(BinaryExprAST* node) {
+    llvm::Value* left = nullptr;
+    llvm::Value* right = nullptr;
+
+    if (auto* num = dynamic_cast<numberExprAST*>(node->getLHS())) {
+        left = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
+    }
+    else if (auto* ref = dynamic_cast<VariableRefAST*>(node->getLHS())) {
+        left = codegenVarRef(ref);
+    }
+    else if (auto* bin = dynamic_cast<BinaryExprAST*>(node->getLHS())) {
+        left = codegenBinaryExpr(bin);
+    }
+
+    if (auto* num = dynamic_cast<numberExprAST*>(node->getRHS())) {
+        right = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
+    }
+    else if (auto* ref = dynamic_cast<VariableRefAST*>(node->getRHS())) {
+        right = codegenVarRef(ref);
+    }
+    else if (auto* bin = dynamic_cast<BinaryExprAST*>(node->getRHS())) {
+        right = codegenBinaryExpr(bin);
+    }
+
+    if (!left || !right) {
+        return nullptr;
+    }
+
+    switch (node->getOp()) {
+        case '+': return Builder->CreateAdd(left, right, "addtmp");
+        case '-': return Builder->CreateSub(left, right, "subtmp");
+        case '*': return Builder->CreateMul(left, right, "multmp");
+        case '/': return Builder->CreateSDiv(left, right, "divtmp");
+        default:
+            std::cerr << "ERROR: Unknown operator!\n";
+            return nullptr;
+
+    }
+}
 
 
 

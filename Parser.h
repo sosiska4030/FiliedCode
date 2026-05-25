@@ -139,7 +139,8 @@ public:
     std::unique_ptr<CallExprAST> parseCallExpr();
     std::unique_ptr<VarDeclareAST> parseVariableDeclaration();
     std::unique_ptr<numberExprAST> parseNumberExpr();
-
+    std::unique_ptr<ASTNode> parseExpression();
+    std::unique_ptr<ASTNode> parsePrimary();
 
 
 };
@@ -159,8 +160,9 @@ public:
             : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
     char getOp() const { return Op; }
-    const ASTNode* getLHS() const { return LHS.get(); }
-    const ASTNode* getRHS() const { return RHS.get(); }
+    ASTNode* getLHS() const { return LHS.get(); }
+    ASTNode* getRHS() const { return RHS.get(); }
+    llvm::Value* codegen() override { return nullptr; }
 
 
 };
