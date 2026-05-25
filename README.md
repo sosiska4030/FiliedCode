@@ -73,4 +73,4 @@ variable int result == 10 / 5;
 FiliedCode/
 src/      - compiler source code
 tests/    - example .fc files
-docs/     - language documentation
+
