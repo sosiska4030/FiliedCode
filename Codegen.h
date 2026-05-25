@@ -36,6 +36,7 @@ public:
     llvm::Value* codegenVarDecl(VarDeclareAST* node);
     llvm::Value* codegenVarRef(VariableRefAST* node);
     llvm::Value* codegenPrint(CallExprAST* node, bool newLine);
+    llvm::Value* codegenBinaryExpr(BinaryExprAST* node);
 
     void declareExternalFunctions();
     void emitObjectFile(const std::string& filename);
