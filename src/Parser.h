@@ -141,6 +141,8 @@ public:
     std::unique_ptr<numberExprAST> parseNumberExpr();
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parsePrimary();
+    std::unique_ptr<ASTNode> parseIf();
+    std::unique_ptr<ASTNode> parseCondition();
 
 
 };
@@ -175,6 +177,43 @@ public:
 
     }
     const std::string& getName() { return Name; }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+
+class IfAST : public ASTNode{
+private:
+    std::unique_ptr<ASTNode> condition;
+    std::unique_ptr<ASTNode> then;
+    std::unique_ptr<ASTNode> else_;
+
+
+
+public:
+    IfAST(std::unique_ptr<ASTNode> condition, std::unique_ptr<ASTNode> then, std::unique_ptr<ASTNode> else_) : condition(std::move(condition)), then(std::move(then)),
+    else_(std::move(else_)) {
+
+    }
+
+    ASTNode* getCondition() { return condition.get(); }
+    ASTNode* getThen() { return then.get(); }
+    ASTNode* getElse() { return else_.get(); }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+class ComparisonAST : public ASTNode {
+    std::string Op;
+    std::unique_ptr<ASTNode> LHS;
+    std::unique_ptr<ASTNode> RHS;
+
+public:
+    ComparisonAST(const std::string& Op, std::unique_ptr<ASTNode> LHS, std::unique_ptr<ASTNode> RHS) : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {
+
+    }
+
+    const std::string& getOp() const { return Op; }
+    ASTNode* getLHS() const { return LHS.get(); }
+    ASTNode* getRHS() const { return RHS.get(); }
     llvm::Value* codegen() override { return nullptr; }
 };
 

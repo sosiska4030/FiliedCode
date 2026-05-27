@@ -96,6 +96,9 @@ llvm::Value* Codegen::codegenBlock(BlockAST *node) {
         else if (auto* bin = dynamic_cast<BinaryExprAST*>(stmt.get())) {
             last = codegenBinaryExpr(bin);
         }
+        else if (auto* ifNode = dynamic_cast<IfAST*>(stmt.get())) {
+            last = codegenIf(ifNode);
+        }
     }
     return last;
 }
@@ -316,6 +319,71 @@ llvm::Value* Codegen::codegenBinaryExpr(BinaryExprAST* node) {
 
     }
 }
+
+llvm::Value* Codegen::codegenComparison(ComparisonAST* node) {
+    llvm::Value* left = codegenValue(node->getLHS());
+    llvm::Value* right = codegenValue(node->getRHS());
+
+    if (!left || !right) return nullptr;
+
+    const std::string op = node->getOp();
+
+    if (op == "<")  return Builder->CreateICmpSLT(left, right, "cmptmp");
+    if (op == ">")  return Builder->CreateICmpSGT(left, right, "cmptmp");
+    if (op == "<=") return Builder->CreateICmpSLE(left, right, "cmptmp");
+    if (op == ">=") return Builder->CreateICmpSGE(left, right, "cmptmp");
+    if (op == "===") return Builder->CreateICmpEQ(left, right, "cmptmp");
+    if (op == "!=") return Builder->CreateICmpNE(left, right, "cmptmp");
+
+    std::cerr << "ERROR: Unknown comparison operator: " << op << "\n";
+    return nullptr;
+}
+
+
+llvm::Value* Codegen::codegenValue(ASTNode *node) {
+    if (auto* num = dynamic_cast<numberExprAST*>(node)) {
+        return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
+    }
+    if (auto* ref = dynamic_cast<VariableRefAST*>(node)) {
+        return codegenVarRef(ref);
+    }
+    if (auto* bin = dynamic_cast<BinaryExprAST*>(node)) {
+        return codegenBinaryExpr(bin);
+    }
+    if (auto* cmp = dynamic_cast<ComparisonAST*>(node)) {
+        return codegenComparison(cmp);
+    }
+    return nullptr;
+}
+
+llvm::Value* Codegen::codegenIf(IfAST* node) {
+    llvm::Value* condValue = codegenValue(node->getCondition());
+
+    if (!condValue) return nullptr;
+
+    llvm::Function* function = Builder->GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(*Context, "then", function);
+    llvm::BasicBlock* elseBB = llvm::BasicBlock::Create(*Context, "else", function);
+    llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(*Context, "merge", function);
+
+    Builder->CreateCondBr(condValue, thenBB, elseBB);
+
+    Builder->SetInsertPoint(thenBB);
+    codegenBlock(dynamic_cast<BlockAST*>(node->getThen()));
+    Builder->CreateBr(mergeBB);
+
+    Builder->SetInsertPoint(elseBB);
+    if (node->getElse()) {
+        codegenBlock(dynamic_cast<BlockAST*>(node->getElse()));
+    }
+    Builder->CreateBr(mergeBB);
+
+    Builder->SetInsertPoint(mergeBB);
+    return nullptr;
+}
+
+
 
 
 

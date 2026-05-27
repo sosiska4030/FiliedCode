@@ -1,0 +1,6 @@
+func main() -> void {
+    variable int x == 10;
+    if(x === 10) {
+        println("It's equal 10");
+    }
+}
