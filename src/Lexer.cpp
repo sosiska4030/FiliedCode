@@ -102,7 +102,14 @@ void Lexer::scan(const std::string& source) {
         if (current == '-' && cursor + 1 < source.length() && source[cursor + 1] == '>') {
             addToken(Tokens::OPERATOR, "->");
             std::cout << "Operator found: ->" << std::endl;
-            cursor++;
+            cursor += 2;
+            continue;
+        }
+
+        if (current == '/' && cursor + 1 < source.length() && source[cursor + 1] == '/') {
+            while (cursor < source.length() && source[cursor] != '\n') {
+                cursor++;
+            }
             continue;
         }
 
@@ -171,6 +178,30 @@ void Lexer::scan(const std::string& source) {
             }
             std::cout << "Found: " << op << std::endl;
             addToken(Tokens::OPERATOR, op);
+            cursor++;
+            continue;
+        }
+
+        if (current == '<') {
+            std::string op = "<";
+            if (cursor + 1 < source.length() && source[cursor + 1] == '=') {
+                op = "<=";
+                cursor++;
+            }
+            addToken(Tokens::OPERATOR, op);
+            std::cout << "Operator found: " << op << std::endl;
+            cursor++;
+            continue;
+        }
+
+        if (current == '>') {
+            std::string op = ">";
+            if (cursor + 1 < source.length() && source[cursor + 1] == '=') {
+                op = ">=";
+                cursor++;
+            }
+            addToken(Tokens::OPERATOR, op);
+            std::cout << "Operator found: " << op << std::endl;
             cursor++;
             continue;
         }

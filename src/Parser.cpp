@@ -84,6 +84,10 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     {
         return parseVariableDeclaration();
     }
+
+    if (check(Tokens::KEYWORD) && curTok().value == "if") {
+        return parseIf();
+    }
     return nullptr;
 }
 
@@ -204,4 +208,71 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
     return left;
 }
 
+std::unique_ptr<ASTNode> Parser::parseIf() {
+    consume();
+
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "(") {
+        std::cerr << "ERROR: Expected (\n";
+        return nullptr;
+    }
+    consume();
+
+    auto Condition = parseCondition();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != ")") {
+        std::cerr << "ERROR: Expected )\n";
+        return nullptr;
+    }
+    consume();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "{") {
+        std::cerr << "ERROR: Expected {\n";
+        return nullptr;
+    }
+    consume();
+
+    auto thenBlock = std::make_unique<BlockAST>();
+
+    while (!isAtEnd() && curTok().value != "}") {
+        auto stmt = parseStatement();
+        if (stmt) thenBlock->push_into_statements(std::move(stmt));
+        else consume();
+    }
+    consume();
+
+    std::unique_ptr<ASTNode> elseBlock = nullptr;
+    if (check(Tokens::KEYWORD) && curTok().value == "else") {
+        consume();
+        if (!check(Tokens::PUNCTUATOR) || curTok().value != "{") {
+            std::cerr << "ERROR: Expected {\n";
+            return nullptr;
+        }
+        consume();
+
+        auto block = std::make_unique<BlockAST>();
+        while (!isAtEnd() && curTok().value != "}") {
+            auto stmt = parseStatement();
+            if (stmt) block->push_into_statements(std::move(stmt));
+            else consume();
+        }
+        consume();
+        elseBlock = std::move(block);
+    }
+
+    return std::make_unique<IfAST>(std::move(Condition), std::move(thenBlock), std::move(elseBlock));
+}
+
+
+std::unique_ptr<ASTNode> Parser::parseCondition() {
+    auto left = parsePrimary();
+
+    if (check(Tokens::OPERATOR) && (curTok().value == ">"
+        ||  curTok().value == "<" || curTok().value == ">=" || curTok().value == "<=" || curTok().value == "!=" || curTok().value == "===" )) {
+
+        std::string op = consume().value;
+        auto right = parsePrimary();
+
+        return std::make_unique<ComparisonAST>(op, std::move(left), std::move(right));
+    }
+
+    return left;
+}
 
