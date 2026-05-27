@@ -37,6 +37,12 @@ fcc build_and_run hello.fc
 
 # Show compiler version
 fcc --version
+
+# Check compilation
+fcc check hello.fc
+
+# Run .fc file without .exe file
+fcc run_without_file hello.fc
 ```
 
 ## Language Features
