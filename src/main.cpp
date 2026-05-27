@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         buildFile(argv[2]);
     }
     else if (argc == 2 && std::string(argv[1]) == "--version") {
-        std::cout << "FiliedCode Compiler, version: 0.3\n";
+        std::cout << "FiliedCode Compiler, version: 0.4\n";
     }
     else if (argc >= 3 && std::string(argv[1]) == "run_without_file") {
         auto result = buildFile(argv[2]);
