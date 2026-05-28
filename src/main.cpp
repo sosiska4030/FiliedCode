@@ -6,6 +6,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Codegen.h"
+#include "Debug.h"
 
 
 struct BuildResult {
@@ -28,13 +29,31 @@ int main(int argc, char** argv) {
 
     if (argc >= 3 && std::string(argv[1]) == "build")
     {
-        buildFile(argv[2]);
+        int fileArgIdx = 2;
+        if (std::string(argv[2]) == "debug") {
+            debugMode = true;
+            fileArgIdx = 3;
+            if (argc < 4) {
+                std::cerr << "ERROR: Expected file name after debug\n";
+                return -1;
+            }
+        }
+        buildFile(argv[fileArgIdx]);
     }
     else if (argc == 2 && std::string(argv[1]) == "--version") {
-        std::cout << "FiliedCode Compiler, version: 0.4\n";
+        std::cout << "FiliedCode Compiler, version: 0.4.5\n";
     }
     else if (argc >= 3 && std::string(argv[1]) == "run_without_file") {
-        auto result = buildFile(argv[2]);
+        int fileArgIdx = 2;
+        if (std::string(argv[2]) == "debug") {
+            debugMode = true;
+            fileArgIdx = 3;
+            if (argc < 4) {
+                std::cerr << "ERROR: Expected file name after debug\n";
+                return -1;
+            }
+        }
+        auto result = buildFile(argv[fileArgIdx]);
         if (result.success) {
             std::cout << "Running: " << result.exeFile << "\n---\n";
             std::system(("\"" + result.exeFile + "\"").c_str());
@@ -45,7 +64,16 @@ int main(int argc, char** argv) {
     }
     else if (argc >= 3 && std::string(argv[1]) == "build_and_run")
     {
-        auto result = buildFile(argv[2]);
+        int fileArgIdx = 2;
+        if (std::string(argv[2]) == "debug") {
+            debugMode = true;
+            fileArgIdx = 3;
+            if (argc < 4) {
+                std::cerr << "ERROR: Expected file name after debug\n";
+                return -1;
+            }
+        }
+        auto result = buildFile(argv[fileArgIdx]);
         if (result.success) {
             std::cout << "Running: " << result.exeFile<< "\n---\n";
             std::system(("\"" + result.exeFile + "\"").c_str());

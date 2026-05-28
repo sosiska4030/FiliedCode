@@ -183,6 +183,12 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
     if (check(Tokens::NUMBER)) {
         return std::make_unique<numberExprAST>(std::stoi(consume().value));
     }
+    if (check(Tokens::FLOAT)) {
+        return std::make_unique<floatExprAST>(std::stod(consume().value));
+     }
+    /* if (check(Tokens::BOOL)) {
+        return std::make_unique<boolExprAST>(std::stoi(consume().value));
+    } */
     if (check(Tokens::IDENTIFIER)) {
         return std::make_unique<VariableRefAST>(consume().value);
     }

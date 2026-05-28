@@ -21,7 +21,9 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
-add_executable(fcc ${SOURCES} ${HEADERS})
+add_executable(fcc ${SOURCES} ${HEADERS}
+        src/Debug.cpp
+        src/Debug.h)
 
 llvm_map_components_to_libnames(llvm_libs
         Core

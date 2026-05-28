@@ -109,6 +109,22 @@ public:
     llvm::Value* codegen() override { return nullptr; }
 };
 
+class floatExprAST : public ASTNode {
+
+    double value;
+public:
+    floatExprAST(double value) : value(value) {}
+    double getValue() const { return value; }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+class boolExprAST : public ASTNode {
+    bool value;
+public:
+    boolExprAST(bool value) : value(value) {}
+    bool getValue() const { return value; }
+    llvm::Value* codegen() override { return nullptr; }
+};
 
 class Parser {
 

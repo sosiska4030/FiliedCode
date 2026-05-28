@@ -1,0 +1,12 @@
+func main() -> void {
+    variable int age;
+    printf("Enter your age: ");
+    input(age);
+    if (age >= 18)
+    {
+        println("You're an adult");
+    }
+    else {
+        println("You are a child");
+    }
+}

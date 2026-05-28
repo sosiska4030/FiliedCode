@@ -36,10 +36,13 @@ public:
     llvm::Value* codegenVarDecl(VarDeclareAST* node);
     llvm::Value* codegenVarRef(VariableRefAST* node);
     llvm::Value* codegenPrint(CallExprAST* node, bool newLine);
+    llvm::Value* codegenInput(CallExprAST* node);
     llvm::Value* codegenBinaryExpr(BinaryExprAST* node);
     llvm::Value* codegenIf(IfAST* node);
     llvm::Value* codegenComparison(ComparisonAST* node);
     llvm::Value* codegenValue(ASTNode* node);
+
+    llvm::Type* getLLVMType(const std::string& type);
 
     void declareExternalFunctions();
     void emitObjectFile(const std::string& filename);

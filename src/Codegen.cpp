@@ -3,6 +3,7 @@
 //
 
 #include "Codegen.h"
+#include "Debug.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -30,10 +31,23 @@ void Codegen::declareExternalFunctions()
         true
     );
 
+    llvm::FunctionType* scanfType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(*Context),
+        { charPtr },
+        true
+    );
+
     llvm::Function::Create(
         printfType,
         llvm::Function::ExternalLinkage,
         "printf",
+        *Module
+    );
+
+    llvm::Function::Create(
+        scanfType,
+        llvm::Function::ExternalLinkage,
+        "scanf",
         *Module
     );
 }
@@ -51,7 +65,7 @@ void Codegen::generateProgram(ASTNode* root) {
             codegenFunction(func);
         }
     }
-    Module->print(llvm::outs(), nullptr);
+    if (debugMode) Module->print(llvm::outs(), nullptr);
 }
 
 llvm::Value *Codegen::codegenFunction(FunctionAST *node) {
@@ -113,6 +127,10 @@ llvm::Value* Codegen::codegenCall(CallExprAST *node) {
         return codegenPrint(node, node->getCallee() == "println");
     }
 
+    if (node->getCallee() == "input") {
+        return codegenInput(node);
+    }
+
     llvm::Function* callee = Module->getFunction(node->getCallee());
 
     if (!callee) {
@@ -135,8 +153,37 @@ llvm::Value* Codegen::codegenCall(CallExprAST *node) {
 llvm::Value* Codegen::codegenVarDecl(VarDeclareAST *node) {
 
 
-    llvm::Type* varType;
-    if (node->getType() == "int") {
+    llvm::Type* varType = getLLVMType(node->getType());
+    llvm::AllocaInst* alloca = Builder->CreateAlloca(
+       varType,
+       nullptr,
+       node->getName()
+   );
+
+    if (ASTNode* initVal = node->getInitValue()) {
+        llvm::Value* val = codegenValue(initVal);
+
+        if (val) {
+            llvm::Type* targetType = varType;
+            llvm::Type* valType = val->getType();
+
+            if (valType->isDoubleTy() && targetType->isFloatTy()) {
+                val = Builder->CreateFPTrunc(val, targetType, "trunc");
+            }
+            else if (valType->isFloatingPointTy() && targetType->isIntegerTy()) {
+                val = Builder->CreateFPToSI(val, targetType, "fptoint");
+            }
+            else if (valType->isIntegerTy() && targetType->isFloatingPointTy()) {
+                val = Builder->CreateSIToFP(val, targetType, "inttofp");
+            }
+            else if (valType->isIntegerTy() && targetType->isIntegerTy() && valType != targetType) {
+                val = Builder->CreateIntCast(val, targetType, true, "intcast");
+            }
+
+            Builder->CreateStore(val, alloca);
+        }
+    }
+   /* if (node->getType() == "int") {
         varType = llvm::Type::getInt32Ty(*Context);
     }
     else if (node->getType() == "string") {
@@ -146,17 +193,16 @@ llvm::Value* Codegen::codegenVarDecl(VarDeclareAST *node) {
         varType = llvm::Type::getInt32Ty(*Context);
     }
 
-    llvm::AllocaInst* alloca = Builder->CreateAlloca(
-        varType,
-        nullptr,
-        node->getName()
-    );
+
 
     if (ASTNode* initVal = node->getInitValue()) {
         llvm::Value* val = nullptr;
 
         if (auto* num = dynamic_cast<numberExprAST*>(initVal)) {
             val = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
+        }
+        else if (auto* fl = dynamic_cast<floatExprAST*>(initVal)) {
+            val = llvm::ConstantFP::get(getLLVMType(node->getType()), fl->getValue());
         }
         else if (auto* str = dynamic_cast<stringExprAST*>(initVal)) {
             val = codegenString(str);
@@ -169,7 +215,7 @@ llvm::Value* Codegen::codegenVarDecl(VarDeclareAST *node) {
             Builder->CreateStore(val, alloca);
         }
     }
-
+*/
     NamedValues[node->getName()] = alloca;
     NamedTypes[node->getName()] = node->getType();
 
@@ -224,15 +270,16 @@ llvm::Value* Codegen::codegenVarRef(VariableRefAST *node) {
         return nullptr;
     }
 
-    llvm::Type* loadType;
-    auto typeIt = NamedTypes.find(node->getName());
 
-    if (typeIt != NamedTypes.end() && typeIt->second == "string") {
+    auto typeIt = NamedTypes.find(node->getName());
+    std::string type = (typeIt != NamedTypes.end()) ? typeIt->second : "int";
+    llvm::Type* loadType = getLLVMType(type);
+  /*  if (typeIt != NamedTypes.end() && typeIt->second == "string") {
         loadType = llvm::PointerType::get(*Context, 0);
     }
     else {
         loadType = llvm::Type::getInt32Ty(*Context);
-    }
+    } */
 
     return Builder->CreateLoad(
         loadType,
@@ -258,17 +305,32 @@ llvm::Value* Codegen::codegenPrint(CallExprAST *node, bool newLine) {
         }
         else if (auto* refArg = dynamic_cast<VariableRefAST*>(arg.get())) {
             auto typeIt = NamedTypes.find(refArg->getName());
-            if (typeIt != NamedTypes.end() && typeIt->second == "string") {
+            std::string type = (typeIt != NamedTypes.end()) ? typeIt->second : "int";
+            if (type == "string") {
                 fmt = newLine ? "%s\n" : "%s";
+            }
+            else if (type == "float" || type == "double") {
+                fmt = newLine ? "%f\n" : "%f";
+            }
+            else if (type == "char") {
+                fmt = newLine ? "%c\n" : "%c";
             }
             else {
                 fmt = newLine ? "%d\n" : "%d";
             }
             val = codegenVarRef(refArg);
+
+            if (val && val->getType()->isFloatTy()) {
+                val = Builder->CreateFPExt(val, llvm::Type::getDoubleTy(*Context), "fpext");
+            }
         }
         else if (auto* binArg = dynamic_cast<BinaryExprAST*>(arg.get())) {
             fmt = newLine ? "%d\n" : "%d";
             val = codegenBinaryExpr(binArg);
+        }
+        else if (auto* flArg = dynamic_cast<floatExprAST*>(arg.get())) {
+            fmt = newLine ? "%f\n" : "%f";
+            val = llvm::ConstantFP::get(llvm::Type::getDoubleTy(*Context), flArg->getValue());
         }
 
         if (val) {
@@ -344,6 +406,9 @@ llvm::Value* Codegen::codegenValue(ASTNode *node) {
     if (auto* num = dynamic_cast<numberExprAST*>(node)) {
         return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), num->getValue());
     }
+    if (auto* str = dynamic_cast<stringExprAST*>(node)) {
+        return codegenString(str);
+    }
     if (auto* ref = dynamic_cast<VariableRefAST*>(node)) {
         return codegenVarRef(ref);
     }
@@ -352,6 +417,9 @@ llvm::Value* Codegen::codegenValue(ASTNode *node) {
     }
     if (auto* cmp = dynamic_cast<ComparisonAST*>(node)) {
         return codegenComparison(cmp);
+    }
+    if (auto* fl = dynamic_cast<floatExprAST*>(node)) {
+        return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*Context), fl->getValue());
     }
     return nullptr;
 }
@@ -383,7 +451,51 @@ llvm::Value* Codegen::codegenIf(IfAST* node) {
     return nullptr;
 }
 
+llvm::Value* Codegen::codegenInput(CallExprAST* node) {
+    llvm::Function* scanfFn = Module->getFunction("scanf");
 
+    for (const auto& arg : node->getArgs()) {
+        auto* ref = dynamic_cast<VariableRefAST*>(arg.get());
+        if (!ref) {
+            std::cerr << "ERROR: input() expects a variable\n";
+            continue;
+        }
+
+        auto it = NamedValues.find(ref->getName());
+        if (it == NamedValues.end()) {
+            std::cerr << "ERROR: Unknown variable in input: " << ref->getName() << "\n";
+            continue;
+        }
+
+        std::string fmt;
+        auto typeIt = NamedTypes.find(ref->getName());
+        std::string type = (typeIt != NamedTypes.end()) ? typeIt->second : "int";
+
+        if (type == "string") {
+            std::cerr << "ERROR: Sorry, strings isn't supported for input yet =( \n";
+            continue;
+        }
+
+        if (type == "int") fmt = "%d";
+        else if (type == "double") fmt = "%lf";
+        else if (type == "float") fmt = "%f";
+        else if (type == "char") fmt = "%c";
+        else fmt = "%d";
+
+        llvm::Value* fmtStr = Builder->CreateGlobalString(fmt, "scanf_fmt");
+        Builder->CreateCall(scanfFn, {fmtStr, it->second}, "scantmp");
+    }
+    return nullptr;
+}
+
+llvm::Type* Codegen::getLLVMType(const std::string& type) {
+    if (type == "int")    return llvm::Type::getInt32Ty(*Context);
+    if (type == "float")  return llvm::Type::getFloatTy(*Context);
+    if (type == "double") return llvm::Type::getDoubleTy(*Context);
+    if (type == "char")   return llvm::Type::getInt8Ty(*Context);
+    if (type == "string") return llvm::PointerType::get(*Context, 0);
+    return llvm::Type::getInt32Ty(*Context);
+}
 
 
 

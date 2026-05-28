@@ -9,6 +9,8 @@
 #include <string>
 #include <map>
 
+#include "Debug.h"
+
 Lexer::Lexer() {
     keywords["func"] = Tokens::KEYWORD;
     keywords["variable"] = Tokens::KEYWORD;
@@ -46,6 +48,8 @@ Lexer::Lexer() {
     keywords["float"] = Tokens::TYPE;
     keywords["char"] = Tokens::TYPE;
     keywords["void"] = Tokens::TYPE;
+    keywords["true"] = Tokens::KEYWORD;
+    keywords["false"] = Tokens::KEYWORD;
 
 }
 
@@ -77,11 +81,11 @@ void Lexer::scan(const std::string& source) {
 
             if (it != keywords.end()) {
                 addToken(it->second, identifer);
-                std::cout << "Keyword found: " << identifer << std::endl;
+                if (debugMode) std::cout << "Keyword found: " << identifer << std::endl;
             }
             else {
                 addToken(Tokens::IDENTIFIER, identifer);
-                std::cout << "Identifer found: " << identifer << std::endl;
+                if (debugMode) std::cout << "Identifer found: " << identifer << std::endl;
             }
 
             continue;
@@ -90,18 +94,29 @@ void Lexer::scan(const std::string& source) {
 
         if (std::isdigit(current)) {
             std::string number;
-            while (isdigit(source[cursor])) {
+            bool is_float = false;
+            while (isdigit(source[cursor]) || source[cursor] == '.') {
+                if (source[cursor] == '.') {
+                    is_float = true;
+                }
                 number.push_back(source[cursor]);
                 cursor++;
             }
-            std::cout << "Number found: " << number << std::endl;
-            addToken(Tokens::NUMBER, number);
+
+            if (is_float) {
+                addToken(Tokens::FLOAT, number);
+                if (debugMode) std::cout << "Float found: " << number << std::endl;
+
+            } else {
+                if (debugMode) std::cout << "Number found: " << number << std::endl;
+                addToken(Tokens::NUMBER, number);
+            }
             continue;
         }
 
         if (current == '-' && cursor + 1 < source.length() && source[cursor + 1] == '>') {
             addToken(Tokens::OPERATOR, "->");
-            std::cout << "Operator found: ->" << std::endl;
+            if (debugMode) std::cout << "Operator found: ->" << std::endl;
             cursor += 2;
             continue;
         }
@@ -123,7 +138,7 @@ void Lexer::scan(const std::string& source) {
                 cursor++;
             }
             addToken(Tokens::OPERATOR, fc_operator);
-            std::cout << "Operator found: " << fc_operator << std::endl;
+            if (debugMode) std::cout << "Operator found: " << fc_operator << std::endl;
             continue;
 
         }
@@ -134,7 +149,7 @@ void Lexer::scan(const std::string& source) {
                 no = "!=";
             }
             addToken(Tokens::OPERATOR, no);
-            std::cout << "Operator found: " << no << std::endl;
+            if (debugMode) std::cout << "Operator found: " << no << std::endl;
             continue;
         }
 
@@ -145,7 +160,7 @@ void Lexer::scan(const std::string& source) {
                 cursor++;
             }
             addToken(Tokens::OPERATOR, op);
-            std::cout << "Operator found: " << op << std::endl;
+            if (debugMode) std::cout << "Operator found: " << op << std::endl;
             cursor++;
             continue;
         }
@@ -154,7 +169,7 @@ void Lexer::scan(const std::string& source) {
             std::string fc_or;
             if (cursor + 1 < source.length() && source[cursor + 1] == '|') {
                 addToken(Tokens::OPERATOR, "||");
-                std::cout << "Operator found: ||" << std::endl;
+                if (debugMode) std::cout << "Operator found: ||" << std::endl;
                 cursor += 2;
             }
             else {
@@ -176,7 +191,7 @@ void Lexer::scan(const std::string& source) {
                     cursor++;
                 }
             }
-            std::cout << "Found: " << op << std::endl;
+            if (debugMode) std::cout << "Found: " << op << std::endl;
             addToken(Tokens::OPERATOR, op);
             cursor++;
             continue;
@@ -189,7 +204,7 @@ void Lexer::scan(const std::string& source) {
                 cursor++;
             }
             addToken(Tokens::OPERATOR, op);
-            std::cout << "Operator found: " << op << std::endl;
+            if (debugMode) std::cout << "Operator found: " << op << std::endl;
             cursor++;
             continue;
         }
@@ -201,7 +216,7 @@ void Lexer::scan(const std::string& source) {
                 cursor++;
             }
             addToken(Tokens::OPERATOR, op);
-            std::cout << "Operator found: " << op << std::endl;
+            if (debugMode) std::cout << "Operator found: " << op << std::endl;
             cursor++;
             continue;
         }
@@ -219,7 +234,7 @@ void Lexer::scan(const std::string& source) {
                 str += source[cursor];
                 cursor++;
             } while (cursor < source.length() && source[cursor] != '"');
-            std::cout << "String found: " << str << std::endl;
+            if (debugMode) std::cout << "String found: " << str << std::endl;
             addToken(Tokens::STRING, str);
             cursor++;
             continue;
@@ -231,7 +246,7 @@ void Lexer::scan(const std::string& source) {
 
             std::string pun(1, current);
             addToken(Tokens::PUNCTUATOR, pun);
-            std::cout << "Punctuator found: " << pun << std::endl;
+            if (debugMode) std::cout << "Punctuator found: " << pun << std::endl;
             cursor++;
             continue;
 

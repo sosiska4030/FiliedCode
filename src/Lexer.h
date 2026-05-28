@@ -16,6 +16,8 @@
 enum class Tokens {
     IDENTIFIER,
     NUMBER,
+    FLOAT,
+    BOOL,
     STRING,
     KEYWORD,
     OPERATOR,

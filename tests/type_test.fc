@@ -1,0 +1,13 @@
+// test1_types.fc — все типы
+func main() -> void {
+    variable int a == 42;
+    variable double b == 3.14;
+    variable float c == 2.71;
+    variable char d == 65;
+    variable string e == "hello";
+    println(a);
+    println(b);
+    println(c);
+    println(d);
+    println(e);
+}
