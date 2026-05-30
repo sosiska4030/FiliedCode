@@ -1,0 +1,49 @@
+
+func main() -> void {
+
+    // Variables
+    variable int number == 42;
+    variable double PI == 3.14;
+    variable float version == 0.5;
+    variable char AAAAAA == 65;        // ASCII 'A'
+    variable string eiiiii_ukkat == "Hello, FiliedCode!";
+
+    // Output
+    printf("Welcome to FiliedCode demo");
+    println("");
+    println(eiiiii_ukkat);
+    println(number);
+    println(PI);
+    println(AAAAAA);
+
+    // Arithmetic
+    variable int add == 10 + 5;
+    variable int multiple == 4 * 7;
+    variable int sub == 100 - 42;
+    variable int divide == 50 / 5;
+
+    println(add);
+    println(multiple);
+    println(sub);
+    println(divide);
+
+    // Keyboard input
+    variable int enter;
+    printf("Enter some number: ");
+    input(enter);
+
+    // Conditions
+    if (enter === 1) {
+        println("You entered 1");
+    } else {
+        println("You entered not 1");
+    }
+
+    if (enter === 100) {
+        println("100!");
+    }
+
+
+    // while (i < 10) { ... }
+    // for (variable int i == 0; i < 10; i + 1) { ... }
+}

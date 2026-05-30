@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     if (argc >= 3 && std::string(argv[1]) == "build")
     {
         int fileArgIdx = 2;
-        if (std::string(argv[2]) == "debug") {
+        if (std::string(argv[2]) == "--debug") {
             debugMode = true;
             fileArgIdx = 3;
             if (argc < 4) {
@@ -41,11 +41,11 @@ int main(int argc, char** argv) {
         buildFile(argv[fileArgIdx]);
     }
     else if (argc == 2 && std::string(argv[1]) == "--version") {
-        std::cout << "FiliedCode Compiler, version: 0.4.5\n";
+        std::cout << "FiliedCode Compiler, version: 0.5\n";
     }
     else if (argc >= 3 && std::string(argv[1]) == "run_without_file") {
         int fileArgIdx = 2;
-        if (std::string(argv[2]) == "debug") {
+        if (std::string(argv[2]) == "--debug") {
             debugMode = true;
             fileArgIdx = 3;
             if (argc < 4) {
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     else if (argc >= 3 && std::string(argv[1]) == "build_and_run")
     {
         int fileArgIdx = 2;
-        if (std::string(argv[2]) == "debug") {
+        if (std::string(argv[2]) == "--debug") {
             debugMode = true;
             fileArgIdx = 3;
             if (argc < 4) {

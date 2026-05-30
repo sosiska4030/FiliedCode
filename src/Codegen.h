@@ -41,6 +41,9 @@ public:
     llvm::Value* codegenIf(IfAST* node);
     llvm::Value* codegenComparison(ComparisonAST* node);
     llvm::Value* codegenValue(ASTNode* node);
+    llvm::Value* codegenWhile(WhileAST* node);
+    llvm::Value* codegenAssignment(AssignmentAST* node);
+    llvm::Value* codegenFor(ForAST* node);
 
     llvm::Type* getLLVMType(const std::string& type);
 

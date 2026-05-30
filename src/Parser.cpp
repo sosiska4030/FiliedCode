@@ -77,6 +77,9 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
     if (check(Tokens::IDENTIFIER))
     {
+        if (pos + 1 < tokens.size() && tokens[pos + 1].value == "==") {
+            return parseAssignment();
+        }
         return parseCallExpr();
     }
 
@@ -87,6 +90,13 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
     if (check(Tokens::KEYWORD) && curTok().value == "if") {
         return parseIf();
+    }
+
+    if (check(Tokens::KEYWORD) && curTok().value == "while") {
+        return parseWhile();
+    }
+    if (check(Tokens::KEYWORD) && curTok().value == "for") {
+        return parseFor();
     }
     return nullptr;
 }
@@ -146,16 +156,7 @@ std::unique_ptr<VarDeclareAST> Parser::parseVariableDeclaration() {
         {
             consume();
 
-            /* if (check(Tokens::NUMBER)) {
-                // Я тут задумывал вместо std::unique_ptr<numberExprAST> value объявить, как auto value, но решил что так будет лучше
-                std::unique_ptr<numberExprAST> value = std::make_unique<numberExprAST>(std::stoi(consume().value));
-                initValue = std::move(value);
-            }
-            else if (check(Tokens::STRING)) {
-                // Здесь аналогично
-                std::unique_ptr<stringExprAST> value = std::make_unique<stringExprAST>(consume().value);
-                initValue = std::move(value);
-            } */
+
             initValue = parseExpression();
 
         }
@@ -281,4 +282,86 @@ std::unique_ptr<ASTNode> Parser::parseCondition() {
 
     return left;
 }
+
+std::unique_ptr<ASTNode> Parser::parseWhile() {
+    consume();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "(") {
+        std::cerr << "ERROR: Expected (\n";
+        return nullptr;
+    }
+    consume();
+    auto Condition = parseCondition();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != ")") {
+        std::cerr << "ERROR: Expected )\n";
+        return nullptr;
+    }
+    consume();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "{") {
+        std::cerr << "ERROR: Expected {\n";
+        return nullptr;
+    }
+    consume();
+    auto Body = std::make_unique<BlockAST>();
+    while (!isAtEnd() && curTok().value != "}") {
+        auto stmt = parseStatement();
+        if (stmt) Body->push_into_statements(std::move(stmt));
+        else consume();
+    }
+    consume();
+
+    return std::make_unique<WhileAST>(std::move(Condition), std::move(Body));
+}
+
+std::unique_ptr<ASTNode> Parser::parseAssignment() {
+    std::string Name = consume().value;
+    consume();
+    auto value = parseExpression();
+    if (curTok().value == ";") consume();
+    return std::make_unique<AssignmentAST>(Name, std::move(value));
+}
+
+std::unique_ptr<ASTNode> Parser::parseFor() {
+    consume();
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "(") {
+        std::cerr << "ERROR: Expected (\n";
+        return nullptr;
+    }
+    consume();
+
+    std::unique_ptr<ASTNode> Init = nullptr;
+    if (check(Tokens::KEYWORD) && curTok().value == "variable" ) {
+        Init = parseVariableDeclaration();
+    }
+    else {
+        Init = parseAssignment();
+    }
+
+    auto Condition = parseCondition();
+    if (curTok().value == ";") consume();
+
+    auto Step = parseAssignment();
+
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != ")") {
+        std::cerr << "ERROR: Expected )\n";
+        return nullptr;
+    }
+    consume();
+
+    if (!check(Tokens::PUNCTUATOR) || curTok().value != "{") {
+        std::cerr << "ERROR: Expected {\n";
+        return nullptr;
+    }
+    consume();
+
+    auto Body = std::make_unique<BlockAST>();
+    while (!isAtEnd() && curTok().value != "}") {
+        auto stmt = parseStatement();
+        if (stmt) Body->push_into_statements(std::move(stmt));
+        else consume();
+    }
+    consume();
+
+    return std::make_unique<ForAST>(std::move(Init),std::move(Condition), std::move(Step), std::move(Body));
+}
+
 

@@ -159,6 +159,9 @@ public:
     std::unique_ptr<ASTNode> parsePrimary();
     std::unique_ptr<ASTNode> parseIf();
     std::unique_ptr<ASTNode> parseCondition();
+    std::unique_ptr<ASTNode> parseWhile();
+    std::unique_ptr<ASTNode> parseAssignment();
+    std::unique_ptr<ASTNode> parseFor();
 
 
 };
@@ -230,6 +233,51 @@ public:
     const std::string& getOp() const { return Op; }
     ASTNode* getLHS() const { return LHS.get(); }
     ASTNode* getRHS() const { return RHS.get(); }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+class WhileAST : public ASTNode {
+    std::unique_ptr<ASTNode> Condition;
+    std::unique_ptr<ASTNode> Body;
+
+public:
+    WhileAST(std::unique_ptr<ASTNode> Condition, std::unique_ptr<ASTNode> Body) : Condition(std::move(Condition)), Body(std::move(Body)) {
+
+    }
+    ASTNode* getCondition() { return Condition.get(); }
+    ASTNode* getBody() const { return Body.get(); }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+class AssignmentAST : public ASTNode {
+    std::string Name;
+    std::unique_ptr<ASTNode> Value;
+
+public:
+    AssignmentAST(const std::string& Name, std::unique_ptr<ASTNode> Value) : Name(Name), Value(std::move(Value)) {
+
+    }
+    const std::string& getName() const {return Name;}
+    ASTNode* getValue() const {return Value.get(); }
+    llvm::Value* codegen() override { return nullptr; }
+};
+
+class ForAST : public ASTNode {
+    std::unique_ptr<ASTNode> Init;
+    std::unique_ptr<ASTNode> Condition;
+    std::unique_ptr<ASTNode> Step;
+    std::unique_ptr<ASTNode> Body;
+
+public:
+    ForAST(std::unique_ptr<ASTNode> Init,std::unique_ptr<ASTNode> Condition, std::unique_ptr<ASTNode> Step, std::unique_ptr<ASTNode> Body) :
+    Init(std::move(Init)), Condition(std::move(Condition)), Step(std::move(Step)), Body(std::move(Body)) {
+
+    }
+
+    ASTNode* getInit() const { return Init.get(); }
+    ASTNode* getCondition() const { return Condition.get(); }
+    ASTNode* getStep() const { return Step.get(); }
+    ASTNode* getBody() const { return Body.get(); }
     llvm::Value* codegen() override { return nullptr; }
 };
 

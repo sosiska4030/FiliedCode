@@ -113,6 +113,15 @@ llvm::Value* Codegen::codegenBlock(BlockAST *node) {
         else if (auto* ifNode = dynamic_cast<IfAST*>(stmt.get())) {
             last = codegenIf(ifNode);
         }
+        else if (auto* whileNode = dynamic_cast<WhileAST*>(stmt.get())) {
+            last = codegenWhile(whileNode);
+        }
+        else if (auto* assignment = dynamic_cast<AssignmentAST*>(stmt.get())) {
+            last = codegenAssignment(assignment);
+        }
+        else if (auto* forNode = dynamic_cast<ForAST*>(stmt.get())) {
+            last = codegenFor(forNode);
+        }
     }
     return last;
 }
@@ -498,5 +507,109 @@ llvm::Type* Codegen::getLLVMType(const std::string& type) {
 }
 
 
+
+
+llvm::Value* Codegen::codegenWhile(WhileAST* node) {
+
+
+
+
+    llvm::Function* function = Builder->GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* condBB = llvm::BasicBlock::Create(*Context, "cond", function);
+    llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(*Context, "body", function);
+    llvm::BasicBlock* afterBB = llvm::BasicBlock::Create(*Context, "after", function);
+
+
+
+
+    Builder->CreateBr(condBB);
+    Builder->SetInsertPoint(condBB);
+
+    llvm::Value* condValue = codegenValue(node->getCondition());
+    if (!condValue) return nullptr;
+    Builder->CreateCondBr(condValue, bodyBB, afterBB);
+    Builder->SetInsertPoint(bodyBB);
+
+    codegenBlock(dynamic_cast<BlockAST*>(node->getBody()));
+
+    Builder->CreateBr(condBB);
+    Builder->SetInsertPoint(afterBB);
+
+    return nullptr;
+
+}
+
+llvm::Value* Codegen::codegenAssignment(AssignmentAST* node) {
+    auto it = NamedValues.find(node->getName());
+    if (it == NamedValues.end()) {
+        std::cerr << "ERROR: Unknown variable: " << node->getName() << "\n";
+        return nullptr;
+    }
+
+    llvm::Value* val = codegenValue(node->getValue());
+
+    if (!val) return nullptr;
+    auto typeIt = NamedTypes.find(node->getName());
+    std::string type = (typeIt != NamedTypes.end()) ? typeIt->second : "int";
+    llvm::Type* targetType = getLLVMType(type);
+    llvm::Type* valType = val->getType();
+
+    if (valType->isDoubleTy() && targetType->isFloatTy()) {
+        val = Builder->CreateFPTrunc(val, targetType, "trunc");
+    }
+    else if (valType->isFloatingPointTy() && targetType->isIntegerTy()) {
+        val = Builder->CreateFPToSI(val, targetType, "fptoint");
+    }
+    else if (valType->isIntegerTy() && targetType->isFloatingPointTy()) {
+        val = Builder->CreateSIToFP(val, targetType, "inttofp");
+    }
+    else if (valType->isIntegerTy() && targetType->isIntegerTy() && valType != targetType) {
+        val = Builder->CreateIntCast(val, targetType, true, "intcast");
+    }
+
+    Builder->CreateStore(val, it->second);
+    return val;
+}
+
+llvm::Value* Codegen::codegenFor(ForAST* node) {
+
+    if (node->getInit()) {
+        if (auto* var = dynamic_cast<VarDeclareAST*>(node->getInit())) {
+            codegenVarDecl(var);
+        }
+        else if (auto* assignment = dynamic_cast<AssignmentAST*>(node->getInit())) {
+            codegenAssignment(assignment);
+        }
+    }
+
+    llvm::Function* function = Builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* condBB = llvm::BasicBlock::Create(*Context, "for.cond", function);
+    llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(*Context, "for.body", function);
+    llvm::BasicBlock* afterBB = llvm::BasicBlock::Create(*Context, "for.after", function);
+
+    Builder->CreateBr(condBB);
+    Builder->SetInsertPoint(condBB);
+    llvm::Value* condValue = codegenValue(node->getCondition());
+    if (!condValue) return nullptr;
+    Builder->CreateCondBr(condValue, bodyBB, afterBB);
+
+    Builder->SetInsertPoint(bodyBB);
+    codegenBlock(dynamic_cast<BlockAST*>(node->getBody()));
+
+    if (node->getStep()) {
+        if (auto* assignment = dynamic_cast<AssignmentAST*>(node->getStep())) {
+            codegenAssignment(assignment);
+        }
+    }
+
+    Builder->CreateBr(condBB);
+
+    Builder->SetInsertPoint(afterBB);
+
+
+
+    return nullptr;
+}
 
 

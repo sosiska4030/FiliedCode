@@ -1,0 +1,15 @@
+func main() -> void {
+    variable int i == 0;
+    while (i < 5)
+    {
+        println(i);
+        i == i + 1;
+    }
+    println("done");
+
+    for (variable int i == 0; i < 5; i == i + 1) {
+        println(i);
+    }
+    println("done");
+
+}
